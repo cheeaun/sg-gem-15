@@ -33,6 +33,12 @@ npm run dev
 # → http://localhost:8123/
 ```
 
+## Deploy to GitHub Pages
+
+Pushes to `main` build and publish the site automatically. In the repository
+settings, set **Pages → Build and deployment → Source** to **GitHub Actions**.
+You can also run the workflow manually from the Actions tab.
+
 ## Data and attribution
 
 **Elevation — GEM-15.** Google's Near-Global Elevation Models at 15 m, DTM band, EGM96 orthometric metres. Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
