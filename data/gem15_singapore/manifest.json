@@ -1,0 +1,104 @@
+{
+  "source": "GEM-15 (Google Near-Global Elevation Models at 15m), dtm band",
+  "source_tiles": [
+    "w103s1",
+    "w104s1"
+  ],
+  "boundary_source": {
+    "url": "https://raw.githubusercontent.com/georgique/world-geojson/c379575bd58081dbf849c9a11a1d278e483688a4/countries/singapore.json",
+    "sha256": "44b16845dfd92e1e7c6389515f61f945a7b3aefb60620c9f7e3b678a5417a0cc"
+  },
+  "file": "singapore_dtm.tif",
+  "format": "Cloud-Optimised GeoTIFF, Float32, DEFLATE + predictor 3, nodata NaN",
+  "sha256": "6397cf017ba049f8a60ab80e5f874113f75e24e539db9d1013e127505716f3fa",
+  "bytes": 13556767,
+  "crs": "EPSG:32648 (UTM zone 48N)",
+  "vertical_datum": "EGM96 orthometric heights, meters",
+  "tile_size": 256,
+  "levels": [
+    {
+      "level": 0,
+      "width": 3694,
+      "height": 2869,
+      "cell_m": 15.0
+    },
+    {
+      "level": 1,
+      "width": 1847,
+      "height": 1434,
+      "cell_m": 30.0,
+      "factor": 2
+    },
+    {
+      "level": 2,
+      "width": 923,
+      "height": 717,
+      "cell_m": 60.0,
+      "factor": 4
+    },
+    {
+      "level": 3,
+      "width": 461,
+      "height": 358,
+      "cell_m": 120.0,
+      "factor": 8
+    },
+    {
+      "level": 4,
+      "width": 230,
+      "height": 179,
+      "cell_m": 240.0,
+      "factor": 16
+    }
+  ],
+  "width": 3694,
+  "height": 2869,
+  "pixel_size_m": 15.0,
+  "utm_origin": [
+    343873.91777371615,
+    163479.76808859117
+  ],
+  "utm_bounds": {
+    "east": 399280.1424990724,
+    "west": 343873.91777371615,
+    "north": 163479.76808859117,
+    "south": 120443.39115960718
+  },
+  "geographic_bounds": {
+    "west": 103.59661121434644,
+    "south": 1.0895633954329358,
+    "east": 104.09476530044932,
+    "north": 1.4786030048561702
+  },
+  "height_min": -32.877540588378906,
+  "height_max": 165.28257751464844,
+  "min_land_height_m": -40.0,
+  "clamped_low_cells": 0,
+  "below_zero_cells": 35436,
+  "nodata": "NaN",
+  "land_cells": {
+    "col_min": 66,
+    "col_max": 3647,
+    "row_min": 48,
+    "row_max": 2830
+  },
+  "islands": {
+    "Sentosa": 9420,
+    "Pulau Ubin": 22935,
+    "Pulau Tekong": 8563,
+    "St John's Island": 299,
+    "Lazarus Island": 823,
+    "Kusu Island": 122,
+    "Pulau Jong": "no GEM-15 data",
+    "Pulau Tekukor": "no GEM-15 data",
+    "Pulau Hantu": "no GEM-15 data",
+    "Pulau Semakau": 62,
+    "Sisters Islands": "no GEM-15 data",
+    "Sultan Shoal": 277,
+    "Pulau Sudong": "no GEM-15 data",
+    "Pulau Pawai": "no GEM-15 data",
+    "Pulau Senang": "no GEM-15 data",
+    "Pulau Biola": "no GEM-15 data",
+    "Pulau Satumu": 12
+  }
+}

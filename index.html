@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="color-scheme" content="light dark" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Singapore · Digital Elevation Model</title>
+<meta name="description" content="An interactive 3D terrain of Singapore, rendered from the GEM-15 digital terrain model at 15 m resolution." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230b1214'/%3E%3Cpath%20d='M2%2024l8-10%205%206%205-9%2010%2013z'%20fill='%235c7f52'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    color-scheme: light dark;
+
+    /* light */
+    --bg-light: #edf1ec;
+    --panel-light: #f8faf7;
+    --panel-bg-light: rgba(250, 252, 249, 0.88);
+    --tool-bg-light: rgba(250, 252, 249, 0.94);
+    --tool-hover-light: rgba(236, 241, 237, 0.98);
+    --line-light: rgba(17, 28, 22, 0.14);
+    --line-strong-light: rgba(17, 28, 22, 0.28);
+    --text-light: #111613;
+    --muted-light: #46544c;
+    --muted-faint-light: rgba(70, 84, 76, 0.82);
+    --control-track-light: rgba(17, 28, 22, 0.18);
+    --hover-fill-light: rgba(17, 28, 22, 0.06);
+    --active-fill-light: rgba(17, 28, 22, 0.1);
+    --status-code-light: rgba(17, 28, 22, 0.08);
+    --checker-a-light: #e8ede7;
+    --checker-b-light: #f6f9f4;
+
+    /* dark */
+    --bg-dark: #0a0f11;
+    --panel-dark: #0d1417;
+    --panel-bg-dark: rgba(14, 21, 24, 0.84);
+    --tool-bg-dark: rgba(14, 21, 24, 0.94);
+    --tool-hover-dark: rgba(22, 32, 36, 0.98);
+    --line-dark: rgba(236, 240, 236, 0.14);
+    --line-strong-dark: rgba(236, 240, 236, 0.28);
+    --text-dark: #f2f4f1;
+    --muted-dark: #a8b0ab;
+    --muted-faint-dark: rgba(168, 176, 171, 0.86);
+    --control-track-dark: rgba(236, 240, 236, 0.22);
+    --hover-fill-dark: rgba(255, 255, 255, 0.06);
+    --active-fill-dark: rgba(255, 255, 255, 0.1);
+    --status-code-dark: rgba(255, 255, 255, 0.08);
+    --checker-a-dark: #0b1113;
+    --checker-b-dark: #111a1d;
+
+    --bg: var(--bg-light);
+    --panel: var(--panel-light);
+    --panel-bg: var(--panel-bg-light);
+    --tool-bg: var(--tool-bg-light);
+    --tool-hover: var(--tool-hover-light);
+    --line: var(--line-light);
+    --line-strong: var(--line-strong-light);
+    --text: var(--text-light);
+    --muted: var(--muted-light);
+    --muted-faint: var(--muted-faint-light);
+    --control-track: var(--control-track-light);
+    --hover-fill: var(--hover-fill-light);
+    --active-fill: var(--active-fill-light);
+    --status-code: var(--status-code-light);
+    --checker-a: var(--checker-a-light);
+    --checker-b: var(--checker-b-light);
+    --ui: ui-sans-serif, -apple-system, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: var(--bg-dark);
+      --panel: var(--panel-dark);
+      --panel-bg: var(--panel-bg-dark);
+      --tool-bg: var(--tool-bg-dark);
+      --tool-hover: var(--tool-hover-dark);
+      --line: var(--line-dark);
+      --line-strong: var(--line-strong-dark);
+      --text: var(--text-dark);
+      --muted: var(--muted-dark);
+      --muted-faint: var(--muted-faint-dark);
+      --control-track: var(--control-track-dark);
+      --hover-fill: var(--hover-fill-dark);
+      --active-fill: var(--active-fill-dark);
+      --status-code: var(--status-code-dark);
+      --checker-a: var(--checker-a-dark);
+      --checker-b: var(--checker-b-dark);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ui);
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    overflow: hidden;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(250px, 24vw, 300px);
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .map {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    /* The WebGL canvas clears to transparent, so the sea reads as an alpha
+       checkerboard rather than a solid plate of colour. */
+    background-color: var(--checker-a);
+    background-image:
+      linear-gradient(45deg, var(--checker-b) 25%, transparent 25%, transparent 75%, var(--checker-b) 75%),
+      linear-gradient(45deg, var(--checker-b) 25%, transparent 25%, transparent 75%, var(--checker-b) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+  }
+
+  #cross-section {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    min-height: 0;
+    padding: 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    background: var(--bg);
+    border-left: 1px solid var(--line);
+  }
+
+  #scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+    touch-action: none;
+  }
+  /* While the elevation readout is visible, the cursor marks the sampled point. */
+  #scene.picking { cursor: crosshair; }
+  #scene:active { cursor: grabbing; }
+
+  /* Elevation under the cursor; positioned in the pointer handler, so it never
+     participates in layout. */
+  .tip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--tool-bg);
+    color: var(--text);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    will-change: transform;
+  }
+  .tip[hidden] { display: none; }
+  @media (prefers-color-scheme: light) {
+    .tip { box-shadow: 0 1px 4px rgba(17, 28, 22, 0.12); }
+  }
+
+  /* ---------- header ---------- */
+  header {
+    flex: none;
+    padding: 0;
+    pointer-events: auto;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+
+  .sub {
+    display: block;
+    margin: 5px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+
+  /* ---------- dock: legend + controls ---------- */
+  .dock {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: none;
+    min-width: 0;
+  }
+
+  /* ---------- legend ---------- */
+  .legend {
+    width: 100%;
+    max-width: none;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-bg);
+    pointer-events: auto;
+  }
+
+  .legend-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  .legend-bar {
+    height: 6px;
+    border-radius: 2px;
+    border: 1px solid var(--line);
+  }
+
+  .legend-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  .legend-note {
+    display: none;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .credit {
+    margin: 6px 0 0;
+    font-size: 10.5px;
+    line-height: 1.55;
+    color: var(--muted-faint);
+  }
+  .credit a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 2px;
+  }
+  .credit a:hover { color: var(--text); }
+  .credit .credit-map { display: none; }
+  .credit.map-on .credit-map { display: block; }
+
+  /* ---------- panel ---------- */
+  .panel {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-bg);
+  }
+
+  .panel h2 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .palettes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .palette {
+    display: block;
+    width: 28px;
+    padding: 3px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .palette:hover { background: var(--hover-fill); }
+  .palette:focus-visible { outline: 2px solid var(--line-strong); outline-offset: 2px; }
+
+  .palette .swatch {
+    display: block;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    transition: box-shadow 120ms ease;
+  }
+  /* Swatch-only buttons; the hidden label keeps their accessible name. */
+  .palette .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .palette[aria-pressed="true"] {
+    background: var(--active-fill);
+    border-color: var(--line-strong);
+  }
+  /* A high-contrast ring set off from the swatch, so selection survives any
+     gradient underneath it instead of relying on a 1px border. */
+  .palette[aria-pressed="true"] .swatch {
+    box-shadow: 0 0 0 1px var(--panel), 0 0 0 3px var(--text);
+  }
+
+  .style-picker {
+    display: flex;
+    gap: 3px;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--hover-fill);
+  }
+  .style-picker button {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 4px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 10.5px;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  .style-picker button:hover { background: var(--hover-fill); color: var(--text); }
+  .style-picker button:focus-visible { outline: 2px solid var(--line-strong); outline-offset: 1px; }
+  .style-picker button[aria-pressed="true"] {
+    background: var(--panel);
+    border-color: var(--line-strong);
+    color: var(--text);
+  }
+  .style-picker button:disabled { opacity: 0.5; cursor: default; }
+
+  .field { margin-top: 12px; }
+  /* .field--row sets display:flex, which would beat the UA [hidden] rule */
+  .field[hidden] { display: none; }
+
+  .field-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field-top label { color: var(--muted); }
+  .field-top output {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .field--row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .field--row span { color: var(--text); }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 16px;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--control-track);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--control-track);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5.5px;
+    border-radius: 50%;
+    background: var(--text);
+    border: none;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: var(--text);
+  }
+  input[type="range"]:disabled { opacity: 0.4; cursor: default; }
+  input[type="range"]:focus-visible { outline: 2px solid var(--line-strong); outline-offset: 2px; border-radius: 4px; }
+
+  /* switch */
+  .switch {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    cursor: pointer;
+  }
+  .switch input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .switch .track {
+    width: 34px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--control-track);
+    transition: background 140ms ease;
+  }
+  .switch .track::after {
+    content: "";
+    display: block;
+    width: 14px;
+    height: 14px;
+    margin: 2px;
+    border-radius: 50%;
+    background: var(--text);
+    transition: transform 140ms ease;
+  }
+  .switch input:checked + .track { background: #4f7a5c; }
+  .switch input:checked + .track::after { transform: translateX(16px); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--line-strong); outline-offset: 2px; }
+
+  .reset {
+    margin-top: 12px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .reset:hover { background: var(--hover-fill); border-color: var(--line-strong); }
+  .reset:focus-visible { outline: 2px solid var(--line-strong); outline-offset: 2px; }
+
+  /* ---------- view tools ---------- */
+  .view-tools {
+    display: flex;
+    flex-direction: row;
+    gap: 7px;
+    flex: none;
+    align-items: center;
+  }
+
+  /* A fixed-size trailing slot: the controls never move when it appears. */
+  .load-spinner {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    margin-left: 4px;
+    border: 1.5px solid var(--line-strong);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 700ms linear infinite;
+  }
+  .load-spinner[hidden] { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .load-spinner { animation-duration: 1.8s; }
+  }
+
+  .view-tools button {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--tool-bg);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .view-tools button:hover { border-color: var(--line-strong); background: var(--tool-hover); }
+  .view-tools button:active { background: var(--active-fill); }
+  .view-tools button:focus-visible { outline: 2px solid var(--line-strong); outline-offset: 2px; }
+
+  .view-tools svg { display: block; width: 17px; height: 17px; }
+  .view-tools .compass svg { width: 20px; height: 20px; }
+  .view-tools .compass svg { transform: rotate(var(--bearing, 0deg)); }
+
+  /* ---------- status ---------- */
+  .status {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
+    transition: opacity 500ms ease, visibility 500ms ease;
+  }
+  .status[hidden] { display: none; }
+  .status.is-done { opacity: 0; visibility: hidden; }
+
+  .status-card {
+    max-width: 400px;
+    padding: 0 24px;
+    text-align: center;
+  }
+  .status-card h2 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .status-card p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .status-card code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--status-code);
+    color: var(--text);
+  }
+  .bar-track {
+    width: 120px;
+    height: 2px;
+    margin: 18px auto 0;
+    background: var(--control-track);
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 30%;
+    background: var(--muted);
+    animation: sweep 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  @keyframes sweep {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(380%); }
+  }
+
+  .status-card pre {
+    margin: 14px 0 0;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--hover-fill);
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    text-align: left;
+    overflow-x: auto;
+  }
+
+  /* ---------- portrait: map above, scrollable controls below ---------- */
+  @media (orientation: portrait) {
+    .app {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 55vh) minmax(0, 45vh);
+      grid-template-rows: minmax(0, 55dvh) minmax(0, 45dvh);
+    }
+
+    .sidebar {
+      gap: 14px;
+      padding: 16px;
+      border-top: 1px solid var(--line);
+      border-left: 0;
+    }
+  }
+
+  /* ---------- wide screens ---------- */
+  @media (min-width: 761px) {
+    h1 { font-size: 22px; }
+
+    .view-tools { gap: 7px; }
+    .view-tools button { width: 38px; height: 38px; }
+
+    .legend { padding: 14px; }
+    .legend-note { display: block; }
+
+    .panel { padding: 14px; }
+
+    .palettes { gap: 3px; }
+    .palette {
+      width: 34px;
+      padding: 3px;
+    }
+    .palette .swatch { height: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <main class="map" id="map">
+    <canvas id="scene" aria-label="Interactive elevation model of Singapore"></canvas>
+    <canvas id="cross-section" aria-hidden="true" hidden></canvas>
+  </main>
+
+  <aside class="sidebar">
+    <header>
+  <h1>Singapore DTM DEM</h1>
+  <p class="sub">Digital elevation model · GEM-15 · 15 m grid</p>
+</header>
+
+<div class="view-tools" role="group" aria-label="Orientation and zoom">
+  <button class="compass" id="tool-north" type="button" aria-label="Rotate view to north">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.1" />
+      <path d="M12 3.8 14.9 12 12 20.2 9.1 12Z" fill="currentColor" />
+      <path d="M12 3.8 14.9 12H12Z" fill="#0d1417" fill-opacity="0.5" />
+    </svg>
+  </button>
+  <button id="tool-in" type="button" aria-label="Zoom in">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 5.5v13M5.5 12h13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+    </svg>
+  </button>
+  <button id="tool-out" type="button" aria-label="Zoom out">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5.5 12h13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+    </svg>
+  </button>
+  <span class="load-spinner" id="load-spinner" role="status" aria-label="Loading terrain detail" hidden></span>
+</div>
+
+<div class="dock">
+  <div class="legend">
+    <div class="legend-head">
+      <span>Elevation</span>
+      <span id="legend-unit">m a.s.l.</span>
+    </div>
+    <div class="legend-bar" id="legend-bar"></div>
+    <div class="legend-ticks" id="legend-ticks">
+      <span>0</span><span>—</span><span>—</span>
+    </div>
+    <div class="legend-note" id="legend-note">Loading elevation model…</div>
+    <p class="credit" id="credit">
+      <span>Elevation: <a href="https://developers.google.com/earth-engine/datasets/catalog/projects_climate-and-sustainability_assets_gem-15_v1" target="_blank" rel="noopener noreferrer">GEM-15</a> · This dataset is produced by Google · 15 m DTM · EGM96</span>
+      <span class="credit-map">Base map © <a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a> contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a></span>
+    </p>
+  </div>
+
+  <aside class="panel">
+    <h2>Colour palette</h2>
+    <div class="palettes" id="palettes"></div>
+
+    <label class="field field--row">
+      <span id="view3d-label">3D terrain</span>
+      <span class="switch">
+        <input id="view3d" type="checkbox" aria-labelledby="view3d-label" />
+        <span class="track"></span>
+      </span>
+    </label>
+
+    <div class="field" id="field-exaggeration" hidden>
+      <div class="field-top">
+        <label for="exaggeration">Vertical exaggeration</label>
+        <output id="exaggeration-out" for="exaggeration">1.0×</output>
+      </div>
+      <input id="exaggeration" type="range" min="1" max="9" step="0.5" value="1" />
+    </div>
+
+    <label class="field field--row">
+      <span id="basemap-label">Base map</span>
+      <span class="switch">
+        <input id="basemap" type="checkbox" aria-labelledby="basemap-label" />
+        <span class="track"></span>
+      </span>
+    </label>
+
+    <div class="field" id="field-basemap-style" hidden>
+      <div class="field-top"><span>Map style</span></div>
+      <div class="style-picker" id="basemap-styles" role="group" aria-label="Base map style"></div>
+    </div>
+
+    <label class="field field--row">
+      <span id="contour-label">Contour lines</span>
+      <span class="switch">
+        <input id="contours" type="checkbox" aria-labelledby="contour-label" disabled />
+        <span class="track"></span>
+      </span>
+    </label>
+
+    <label class="field field--row" id="field-flatland" hidden>
+      <span id="flatland-label">Exclude flat land</span>
+      <span class="switch">
+        <input id="flatland" type="checkbox" aria-labelledby="flatland-label" disabled />
+        <span class="track"></span>
+      </span>
+    </label>
+
+    <div class="field" id="field-opacity" hidden>
+      <div class="field-top">
+        <label for="opacity">Terrain opacity</label>
+        <output id="opacity-out" for="opacity">100%</output>
+      </div>
+      <input id="opacity" type="range" min="20" max="100" step="5" value="100" disabled />
+    </div>
+
+    <div class="field" id="field-blend" hidden>
+      <div class="field-top"><span>Terrain blend</span></div>
+      <div class="style-picker" id="blend-modes" role="group" aria-label="Terrain blend mode"></div>
+    </div>
+
+    <button class="reset" id="reset" type="button">Reset view</button>
+  </aside>
+</div>
+</aside>
+</div>
+
+<div class="tip" id="terrain-tip" hidden></div>
+
+<div class="status" id="status" role="status" aria-live="polite">
+  <div class="status-card" id="status-card">
+    <h2 id="status-title">Loading Singapore's terrain</h2>
+    <p id="status-text">Opening the GEM-15 digital terrain model at 15 m resolution.</p>
+    <div class="bar-track" id="status-bar"><div class="bar-fill"></div></div>
+  </div>
+</div>
+
+<script type="module" src="/src/app.js"></script>
+</body>
+</html>
