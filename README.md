@@ -2,6 +2,12 @@
 
 An interactive 3D terrain of Singapore, built from Google's 15 m GEM-15 digital terrain model and rendered with three.js.
 
+![Screenshot of web app](./screenshots/screenshot-1.jpg)
+
+![Screenshot of web app](./screenshots/screenshot-2.jpg)
+
+![Screenshot of web app](./screenshots/screenshot-3.jpg)
+
 ## Features
 
 - 3D relief of the whole island, with five colour ramps and a 10 m contour mode.
